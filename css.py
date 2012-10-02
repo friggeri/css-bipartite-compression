@@ -1,6 +1,8 @@
 import sys
-import tinycss
+import zlib
 import random
+import tinycss
+import argparse
 
 class Node(set):
   def __init__(self, data):
@@ -75,6 +77,8 @@ class Covering(set):
 
   @property
   def cost(self):
+    if self.graph.gzip in xrange(1, 10):
+      return len(zlib.compress(str(self), self.graph.gzip))
     return len(str(self))
 
   def __hash__(self):
@@ -163,8 +167,9 @@ class Covering(set):
     return covering
 
 class CSS(BiGraph):
-  def __init__(self, bicliques):
+  def __init__(self, bicliques, gzip=0):
     super(CSS, self).__init__()
+    self.gzip = gzip
 
     self.population_size = 30
     self.elite = 4
@@ -211,7 +216,9 @@ class CSS(BiGraph):
     print >> sys.stderr, "Cost at beginning:", self.base_covering.cost
     previous, rounds = None, 0
 
-    population = [self.base_covering.copy() for i in xrange(self.population_size)]
+    population = sorted(
+        [self.base_covering.copy() for i in xrange(self.population_size)],
+        key=lambda x: x.cost)
 
     for i in range(self.max_steps):
       print >> sys.stderr, "Generation", i
@@ -272,10 +279,23 @@ def parse(src):
       yield bl, br
 
 if __name__ == '__main__':
-  with open(sys.argv[1]) as f:
+  parser = argparse.ArgumentParser(description='Process some integers.')
+  parser.add_argument('--gzip', dest='gzip', type=int, default=0,
+                    help='Level of gzip compression. Default no compression')
+  parser.add_argument('-o', dest='out', type=str, default='',
+                      help='output file name. If none, use STDOUT')
+  parser.add_argument('fname', type=str, help='input file name')
+
+  args = parser.parse_args()
+
+  with open(args.fname) as f:
     source = f.read()
 
-  css = CSS(parse(source))
+  css = CSS(parse(source), args.gzip)
   res = css.compress()
-  print str(res)
-  print >> sys.stderr, "Compressed file: %s characters (%d%% of original)" % (res.cost, 100*res.cost/len(source))
+  if args.out:
+    with open(args.out, 'w') as f:
+      f.write(str(res))
+  else: print str(res)
+  print >> sys.stderr, "Compressed file: %s characters (%d%% of original)" % (
+      res.cost, 100 * res.cost / css.base_covering.cost)
