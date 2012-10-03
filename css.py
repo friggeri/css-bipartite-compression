@@ -280,16 +280,18 @@ def parse(src):
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Process some integers.')
-  parser.add_argument('--gzip', dest='gzip', type=int, default=0,
+  parser.add_argument('-g', '--gzip', dest='gzip', type=int, default=0,
                     help='Level of gzip compression. Default no compression')
-  parser.add_argument('-o', dest='out', type=str, default='',
+  parser.add_argument('-o', '--output', dest='out', type=str, default='',
                       help='output file name. If none, use STDOUT')
-  parser.add_argument('fname', type=str, help='input file name')
+  parser.add_argument('fname', type=str, nargs='+', help='input file name')
 
   args = parser.parse_args()
 
-  with open(args.fname) as f:
-    source = f.read()
+  source = ""
+  for fname in args.fname:
+    with open(fname) as f:
+      source += f.read()
 
   css = CSS(parse(source), args.gzip)
   res = css.compress()
