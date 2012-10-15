@@ -1,6 +1,8 @@
 import sys
-import tinycss
+import zlib
 import random
+import tinycss
+import argparse
 
 class Node(set):
   def __init__(self, data):
@@ -75,6 +77,8 @@ class Covering(set):
 
   @property
   def cost(self):
+    if self.graph.gzip in xrange(1, 10):
+      return len(zlib.compress(str(self), self.graph.gzip))
     return len(str(self))
 
   def __hash__(self):
@@ -163,8 +167,9 @@ class Covering(set):
     return covering
 
 class CSS(BiGraph):
-  def __init__(self, bicliques):
+  def __init__(self, bicliques, gzip=0):
     super(CSS, self).__init__()
+    self.gzip = gzip
 
     self.population_size = 30
     self.elite = 4
@@ -272,10 +277,25 @@ def parse(src):
       yield bl, br
 
 if __name__ == '__main__':
-  with open(sys.argv[1]) as f:
-    source = f.read()
+  parser = argparse.ArgumentParser(description='Process some integers.')
+  parser.add_argument('-g', '--gzip', dest='gzip', type=int, default=0,
+                    help='Level of gzip compression. Default no compression')
+  parser.add_argument('-o', '--output', dest='out', type=str, default='',
+                      help='output file name. If none, use STDOUT')
+  parser.add_argument('fname', type=str, nargs='+', help='input file name')
 
-  css = CSS(parse(source))
+  args = parser.parse_args()
+
+  source = ""
+  for fname in args.fname:
+    with open(fname) as f:
+      source += f.read()
+
+  css = CSS(parse(source), args.gzip)
   res = css.compress()
-  print str(res)
-  print >> sys.stderr, "Compressed file: %s characters (%d%% of original)" % (res.cost, 100*res.cost/len(source))
+  if args.out:
+    with open(args.out, 'w') as f:
+      f.write(str(res))
+  else: print str(res)
+  print >> sys.stderr, "Compressed file: %s characters (%d%% of original)" % (
+      res.cost, 100 * res.cost / css.base_covering.cost)
