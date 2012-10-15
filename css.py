@@ -216,9 +216,7 @@ class CSS(BiGraph):
     print >> sys.stderr, "Cost at beginning:", self.base_covering.cost
     previous, rounds = None, 0
 
-    population = sorted(
-        [self.base_covering.copy() for i in xrange(self.population_size)],
-        key=lambda x: x.cost)
+    population = [self.base_covering.copy() for i in xrange(self.population_size)]
 
     for i in range(self.max_steps):
       print >> sys.stderr, "Generation", i
